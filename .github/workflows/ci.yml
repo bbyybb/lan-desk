@@ -1,0 +1,323 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "."
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: cargo test -p lan-desk-protocol -p lan-desk-capture -p lan-desk-input -p lan-desk-clipboard -p lan-desk-audio -p lan-desk-server
+
+      - name: Run frontend tests
+        run: npm run test -- --run
+
+      - name: Check compilation
+        run: cargo check
+
+      - name: Install iOS target (macOS only)
+        if: runner.os == 'macOS'
+        run: rustup target add aarch64-apple-ios
+
+      - name: Check iOS compilation (macOS only)
+        if: runner.os == 'macOS'
+        run: cargo check -p lan-desk --no-default-features --target aarch64-apple-ios
+
+  build-windows:
+    name: Build (Windows)
+    runs-on: windows-latest
+    needs: [test, test-linux, lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "."
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
+
+      - name: Build
+        run: npm run tauri build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ""
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lan-desk-windows
+          path: src-tauri/target/release/bundle/msi/*.msi
+
+  build-macos:
+    name: Build (macOS ${{ matrix.arch }})
+    runs-on: macos-latest
+    needs: [test, test-linux, lint]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: aarch64
+            target: aarch64-apple-darwin
+          - arch: x86_64
+            target: x86_64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "."
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
+
+      - name: Build
+        run: npx tauri build --target ${{ matrix.target }}
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ""
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lan-desk-macos-${{ matrix.arch }}
+          path: src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+
+  build-linux:
+    name: Build (Linux)
+    runs-on: ubuntu-latest
+    needs: [test, test-linux, lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxext-dev libxtst-dev libxrandr-dev \
+            libxcb-shm0-dev libxcb-randr0-dev libxcb1-dev libasound2-dev \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev \
+            libpipewire-0.3-dev
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "."
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build
+        run: npx tauri build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ""
+
+      - name: Upload deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lan-desk-linux-deb
+          path: src-tauri/target/release/bundle/deb/*.deb
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lan-desk-linux-appimage
+          path: src-tauri/target/release/bundle/appimage/*.AppImage
+
+  test-linux:
+    name: Test (ubuntu-latest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxext-dev libxtst-dev libxrandr-dev \
+            libxcb-shm0-dev libxcb-randr0-dev libxcb1-dev libasound2-dev \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev \
+            libpipewire-0.3-dev
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "."
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run crate tests
+        run: cargo test -p lan-desk-protocol -p lan-desk-clipboard -p lan-desk-capture -p lan-desk-input -p lan-desk-audio -p lan-desk-server
+
+      - name: Run frontend tests
+        run: npm run test -- --run
+
+      - name: Check compilation (all crates)
+        run: cargo check
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxext-dev libxtst-dev libxrandr-dev \
+            libxcb-shm0-dev libxcb-randr0-dev libxcb1-dev libasound2-dev \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev \
+            libpipewire-0.3-dev
+
+      - name: Clippy (all crates)
+        run: cargo clippy -p lan-desk-protocol -p lan-desk-clipboard -p lan-desk-audio -p lan-desk-capture -p lan-desk-input -p lan-desk-server -p lan-desk -- -D warnings
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Frontend type check
+        run: npx vue-tsc --noEmit
+
+      - name: Frontend lint
+        run: npm run lint
+
+      # 前端测试已在 test job 中运行，lint job 仅负责格式和类型检查
+
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Run cargo audit
+        run: cargo audit
+
+  check-mobile:
+    name: Check (Android target)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK
+        run: sdkmanager "ndk;27.0.12077973"
+
+      - name: Check mobile compilation
+        run: cargo check -p lan-desk --no-default-features --target aarch64-linux-android
+        env:
+          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973

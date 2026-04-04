@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-utils/schema/capability.schema.json",
+  "identifier": "mobile",
+  "description": "移动端权限集",
+  "platforms": ["android", "iOS"],
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:allow-open",
+    "dialog:default"
+  ]
+}

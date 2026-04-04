@@ -1,0 +1,56 @@
+[package]
+name = "lan-desk"
+version = "1.0.0"
+edition = "2021"
+license.workspace = true
+description.workspace = true
+repository.workspace = true
+
+[features]
+default = ["desktop"]
+desktop = ["tauri/tray-icon", "dep:lan-desk-server", "dep:lan-desk-capture", "dep:lan-desk-input", "dep:lan-desk-clipboard", "dep:lan-desk-audio", "dep:tauri-plugin-autostart"]
+opus = ["lan-desk-server/opus", "lan-desk-audio/opus"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# 跨平台（桌面 + 移动端共用）
+lan-desk-protocol = { path = "../crates/lan-desk-protocol" }
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = "1"
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+futures = "0.3"
+tokio-util = { workspace = true }
+bytes = { workspace = true }
+base64 = "0.22"
+hostname = "0.4"
+sha2 = { workspace = true }
+dirs-next = "2"
+tokio-rustls = { workspace = true }
+rustls = { workspace = true }
+rustls-pki-types = { workspace = true }
+hex = "0.4"
+tokio-tungstenite = "0.24"
+rand = "0.8"
+zeroize = { version = "1", features = ["derive"] }
+sys-locale = "0.3"
+if-addrs = "0.13"
+
+# 桌面专属（移动端通过禁用 desktop feature 排除）
+lan-desk-server = { path = "../crates/lan-desk-server", optional = true }
+lan-desk-capture = { path = "../crates/lan-desk-capture", optional = true }
+lan-desk-input = { path = "../crates/lan-desk-input", optional = true }
+lan-desk-clipboard = { path = "../crates/lan-desk-clipboard", optional = true }
+lan-desk-audio = { path = "../crates/lan-desk-audio", optional = true }
+tauri-plugin-autostart = { version = "2", optional = true }
+
+[lib]
+name = "lan_desk_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]

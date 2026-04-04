@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- CSP: ws://127.0.0.1:* 是本地 WebSocket 二进制桥接所必需的（随机临时端口，由 32 字节随机 token 认证）。
+         端口号在运行时由操作系统分配，无法在静态 CSP 中限定具体端口。
+         安全保障：仅绑定 127.0.0.1（不可远程访问）+ token 认证（防止本地其他进程连接）。 -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' ws://127.0.0.1:* wss://127.0.0.1:* ipc: http://ipc.localhost; font-src 'self'" />
+    <meta name="description" content="LAN-Desk - LAN Remote Desktop Tool" />
+    <title>LAN-Desk</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

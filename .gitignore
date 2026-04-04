@@ -1,0 +1,54 @@
+# Rust
+target/
+*.rs.bk
+
+# Node.js
+node_modules/
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+
+# Internal tooling (not for public distribution)
+scripts/*
+!scripts/detect-opus.cjs
+INTERNAL.md
+docs/PROMOTION.md
+
+# TLS 证书和代码签名
+*.pem
+*.key
+*.cert
+*.pfx
+*.p12
+*.der
+
+# Claude Code
+.claude/
+
+# 临时文件
+*.bak
+*.tmp
+.fastRequest
+
+
+# 作者个人文档
+docs/screenshots/README.md
+lan-desk.exe

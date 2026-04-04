@@ -1,0 +1,331 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxext-dev libxtst-dev libxrandr-dev libxcb-shm0-dev libxcb-randr0-dev libxcb1-dev libasound2-dev libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libpipewire-0.3-dev
+      - run: npm ci
+      - name: Run Rust tests
+        run: cargo test -p lan-desk-protocol -p lan-desk-capture -p lan-desk-input -p lan-desk-clipboard -p lan-desk-audio -p lan-desk-server
+      - name: Run frontend tests
+        run: npm run test -- --run
+
+  build-windows:
+    name: Build (Windows)
+    runs-on: windows-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "."
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Import code signing certificate
+        if: ${{ secrets.WINDOWS_CERT_BASE64 != '' }}
+        env:
+          WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
+        shell: bash
+        run: echo "$WINDOWS_CERT_BASE64" | base64 -d > certificate.pfx
+
+      - name: Build Tauri app
+        run: npx tauri build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+          WINDOWS_CERTIFICATE: certificate.pfx
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD || '' }}
+
+      - name: Clean up certificate
+        if: always()
+        run: rm -f certificate.pfx
+
+      - name: Generate checksums
+        shell: pwsh
+        run: |
+          $artifacts = @()
+          $artifacts += Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi" -ErrorAction SilentlyContinue
+          $artifacts += Get-ChildItem "src-tauri/target/release/bundle/nsis/*-setup.exe" -ErrorAction SilentlyContinue
+          foreach ($f in $artifacts) {
+            $hash = (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($f.Name)" | Out-File -Append -FilePath "checksums-windows.txt" -Encoding utf8
+          }
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*-setup.exe
+            checksums-windows.txt
+
+  build-macos:
+    name: Build (macOS ${{ matrix.arch }})
+    runs-on: macos-latest
+    needs: [test]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: aarch64
+            target: aarch64-apple-darwin
+          - arch: x86_64
+            target: x86_64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "."
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Import Apple certificate
+        if: ${{ secrets.APPLE_CERTIFICATE != '' }}
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          security create-keychain -p "" $KEYCHAIN_PATH
+          echo "$APPLE_CERTIFICATE" | base64 -d > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 -k $KEYCHAIN_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" $KEYCHAIN_PATH
+          security list-keychains -d user -s $KEYCHAIN_PATH
+
+      - name: Build Tauri app
+        run: npx tauri build --target ${{ matrix.target }}
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+
+      - name: Notarize macOS app
+        if: ${{ secrets.APPLE_ID != '' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+        run: |
+          for dmg in src-tauri/target/*/release/bundle/dmg/*.dmg; do
+            if [ -f "$dmg" ]; then
+              echo "Notarizing $dmg..."
+              xcrun notarytool submit "$dmg" \
+                --apple-id "$APPLE_ID" \
+                --team-id "$APPLE_TEAM_ID" \
+                --password "$APPLE_PASSWORD" \
+                --wait
+              xcrun stapler staple "$dmg"
+            fi
+          done
+
+      - name: Generate checksums
+        run: |
+          for f in src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg; do
+            shasum -a 256 "$f" >> checksums-macos-${{ matrix.arch }}.txt
+          done
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+            checksums-macos-${{ matrix.arch }}.txt
+
+  build-linux:
+    name: Build (Linux)
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxext-dev libxtst-dev libxrandr-dev \
+            libxcb-shm0-dev libxcb1-dev libxcb-randr0-dev libasound2-dev \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev \
+            libpipewire-0.3-dev
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "."
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build Tauri app
+        run: npx tauri build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+
+      - name: Generate checksums
+        run: |
+          for f in src-tauri/target/release/bundle/deb/*.deb src-tauri/target/release/bundle/appimage/*.AppImage; do
+            [ -f "$f" ] && shasum -a 256 "$f" >> checksums-linux.txt
+          done
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/appimage/*.AppImage
+            checksums-linux.txt
+
+  build-android:
+    name: Build (Android)
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "."
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK
+        run: sdkmanager "ndk;27.0.12077973"
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Initialize Android project
+        run: npx tauri android init
+
+      - name: Build Android APK
+        run: npx tauri android build
+        env:
+          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973
+
+      - name: Generate checksums
+        run: |
+          for f in src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk; do
+            [ -f "$f" ] && shasum -a 256 "$f" >> checksums-android.txt
+          done
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
+            checksums-android.txt
+
+  build-ios:
+    name: Build (iOS)
+    runs-on: macos-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios,x86_64-apple-ios,aarch64-apple-ios-sim
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "."
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Initialize iOS project
+        run: npx tauri ios init
+
+      - name: Build iOS
+        run: npx tauri ios build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ""
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            src-tauri/gen/apple/build/**/*.ipa

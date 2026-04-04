@@ -1,0 +1,41 @@
+[package]
+name = "lan-desk-server"
+version = "1.0.0"
+edition = "2021"
+license.workspace = true
+description.workspace = true
+repository.workspace = true
+
+[features]
+default = []
+opus = ["lan-desk-audio/opus"]
+
+[dependencies]
+lan-desk-protocol = { path = "../lan-desk-protocol" }
+lan-desk-capture = { path = "../lan-desk-capture" }
+lan-desk-input = { path = "../lan-desk-input" }
+lan-desk-clipboard = { path = "../lan-desk-clipboard" }
+lan-desk-audio = { path = "../lan-desk-audio" }
+tokio = { workspace = true }
+serde = { workspace = true }
+tokio-util = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+bytes = { workspace = true }
+futures = "0.3"
+dirs-next = "2"
+sysinfo = "0.32"
+tokio-rustls = { workspace = true }
+rustls = { workspace = true }
+rcgen = { workspace = true }
+rustls-pki-types = { workspace = true }
+sha2 = { workspace = true }
+rand = "0.8"
+zeroize = { version = "1", features = ["derive"] }
+portable-pty = "0.8"
+encoding_rs = "0.8"
+hostname = "0.4"
+ring = "0.17"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+winreg = "0.55"

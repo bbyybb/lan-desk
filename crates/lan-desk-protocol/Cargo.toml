@@ -1,0 +1,21 @@
+[package]
+name = "lan-desk-protocol"
+version = "1.0.0"
+edition = "2021"
+license.workspace = true
+description.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+rmp-serde = "1"
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+bytes = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+sha2 = { workspace = true }
+argon2 = "0.5"
+rand = "0.8"
+subtle = "2"
