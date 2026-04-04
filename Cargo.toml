@@ -28,4 +28,4 @@ tokio-rustls = "0.26"
 rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
 rcgen = "0.13"
 rustls-pki-types = "1"
-sha2 = "0.10"
+sha2 = "0.11"
