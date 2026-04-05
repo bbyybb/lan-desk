@@ -44,6 +44,7 @@ docs/PROMOTION.md
 
 # APK 签名产物
 *.apk
+*.idsig
 
 # Claude Code
 .claude/

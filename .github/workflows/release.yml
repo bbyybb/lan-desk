@@ -296,27 +296,33 @@ jobs:
           # 解码 keystore
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > /tmp/lan-desk.keystore
 
+          # 找到 apksigner 和 zipalign
+          BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/*/ | tail -1)
+          APKSIGNER="${BUILD_TOOLS_DIR}apksigner"
+          ZIPALIGN="${BUILD_TOOLS_DIR}zipalign"
+
           # 找到构建产物
           APK_DIR="src-tauri/gen/android/app/build/outputs/apk/universal/release"
           for apk in "$APK_DIR"/*.apk; do
             [ -f "$apk" ] || continue
             echo "Signing $apk ..."
 
-            # 用 jarsigner 签名
-            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-              -keystore /tmp/lan-desk.keystore \
-              -storepass "$ANDROID_KEYSTORE_PASSWORD" \
-              -keypass "$ANDROID_KEY_PASSWORD" \
-              "$apk" "$ANDROID_KEY_ALIAS"
-
-            # zipalign 优化（如果可用）
-            BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/*/ | tail -1)
-            if [ -f "${BUILD_TOOLS_DIR}zipalign" ]; then
-              "${BUILD_TOOLS_DIR}zipalign" -v 4 "$apk" "${apk%.apk}-aligned.apk"
+            # zipalign 必须在签名前执行
+            if [ -f "$ZIPALIGN" ]; then
+              "$ZIPALIGN" -v -f 4 "$apk" "${apk%.apk}-aligned.apk"
               mv "${apk%.apk}-aligned.apk" "$apk"
             fi
 
+            # 用 apksigner 签名（v2+v3 签名方案）
+            "$APKSIGNER" sign \
+              --ks /tmp/lan-desk.keystore \
+              --ks-key-alias "$ANDROID_KEY_ALIAS" \
+              --ks-pass "pass:$ANDROID_KEYSTORE_PASSWORD" \
+              --key-pass "pass:$ANDROID_KEY_PASSWORD" \
+              "$apk"
+
             echo "Signed: $apk"
+            "$APKSIGNER" verify --verbose "$apk"
           done
 
           # 清理 keystore

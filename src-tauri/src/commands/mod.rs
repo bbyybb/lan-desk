@@ -4,6 +4,8 @@ mod discovery;
 mod file_browser;
 mod file_transfer;
 mod input;
+#[cfg(not(feature = "desktop"))]
+pub mod mobile_stubs;
 pub mod remote_control;
 pub mod screen_blank;
 mod server;

@@ -8,6 +8,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [v1.0.1] - 2026-04-06
+
+### Fixed / 修复
+
+- **Android APK 签名方案**：从 jarsigner (v1) 改为 apksigner (v2+v3)，修复 Android 7.0+ 安装失败 `INSTALL_PARSE_FAILED_NO_CERTIFICATES` 错误
+- **移动端 command not found**：新增 `mobile_stubs` 模块，为 14 个桌面端专属命令（`start_server`、`set_shell_enabled`、`set_idle_timeout` 等）提供移动端 stub，返回友好错误而非 "command not found"
+
+### Changed / 变更
+
+- **移动端命令注册表**：清理移动端的 Tauri 命令列表，移除直接引用桌面端函数，改为 stub 代理
+
+---
+
+## [v1.0.1] - 2026-04-06 (English)
+
+### Fixed
+
+- **Android APK signing scheme**: Switched from jarsigner (v1) to apksigner (v2+v3), fixing `INSTALL_PARSE_FAILED_NO_CERTIFICATES` on Android 7.0+
+- **Mobile command not found**: Added `mobile_stubs` module providing stubs for 14 desktop-only commands (`start_server`, `set_shell_enabled`, `set_idle_timeout`, etc.), returning friendly errors instead of "command not found"
+
+### Changed
+
+- **Mobile command registry**: Cleaned up mobile Tauri command list, replaced direct desktop function references with stub proxies
+
+---
+
 ## [v1.0.0] - 2026-04-06
 
 首个正式版，包含全部核心功能以及大量安全/平台/架构增强。以下为完整变更记录。
@@ -401,4 +427,5 @@ First official release with full-featured LAN remote desktop capabilities.
 - **Android/iOS CI**: `continue-on-error: true` — mobile failures don't block desktop releases
 
 <!-- Version comparison links -->
+[v1.0.1]: https://github.com/bbyybb/lan-desk/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/bbyybb/lan-desk/releases/tag/v1.0.0

@@ -98,6 +98,7 @@ pub fn run() {
     #[cfg(not(feature = "desktop"))]
     {
         builder = builder.invoke_handler(tauri::generate_handler![
+            // 连接和输入（移动端核心功能）
             commands::discover_peers,
             commands::connect_to_peer,
             commands::disconnect,
@@ -109,34 +110,46 @@ pub fn run() {
             commands::get_device_id,
             commands::get_pins,
             commands::refresh_pins,
+            commands::get_ws_port,
+            commands::reconnect_to_peer,
+            commands::get_remote_monitors,
+            commands::get_network_info,
+            commands::wake_on_lan,
+            // 设置（移动端 stub）
             commands::set_unattended,
             commands::set_fixed_pins,
+            commands::set_bandwidth_limit,
+            commands::apply_capture_settings,
+            commands::set_clipboard_sync,
+            // 文件传输
             commands::send_file,
             commands::cancel_transfer,
             commands::stat_path,
-            commands::set_bandwidth_limit,
-            commands::apply_capture_settings,
-            commands::wake_on_lan,
-            commands::get_network_info,
-            commands::start_shell,
-            commands::send_shell_input,
-            commands::resize_shell,
-            commands::close_shell,
-            commands::get_ws_port,
-            commands::reconnect_to_peer,
-            commands::set_clipboard_sync,
-            commands::get_remote_monitors,
-            commands::list_trusted_hosts,
-            commands::remove_trusted_host,
             commands::request_file_list,
             commands::download_remote_file,
             commands::download_remote_directory,
             commands::send_directory,
+            // TOFU 证书
+            commands::list_trusted_hosts,
+            commands::remove_trusted_host,
+            // 聊天 + 特殊键
             commands::chat::send_chat_message,
             commands::special_keys::send_special_key,
-            commands::screen_blank::toggle_screen_blank,
-            commands::remote_control::remote_reboot,
-            commands::remote_control::remote_lock_screen,
+            // 桌面端专属命令的移动端 stub（返回错误，避免前端调用时 command not found）
+            commands::mobile_stubs::start_server,
+            commands::mobile_stubs::stop_server,
+            commands::mobile_stubs::set_shell_enabled,
+            commands::mobile_stubs::set_idle_timeout,
+            commands::mobile_stubs::set_lock_on_disconnect,
+            commands::mobile_stubs::start_shell,
+            commands::mobile_stubs::send_shell_input,
+            commands::mobile_stubs::resize_shell,
+            commands::mobile_stubs::close_shell,
+            commands::mobile_stubs::list_monitors,
+            commands::mobile_stubs::switch_monitor,
+            commands::mobile_stubs::toggle_screen_blank,
+            commands::mobile_stubs::remote_reboot,
+            commands::mobile_stubs::remote_lock_screen,
         ]);
     }
 
