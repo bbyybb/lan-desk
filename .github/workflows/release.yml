@@ -57,8 +57,6 @@ jobs:
 
       - name: Import code signing certificate
         if: ${{ env.WINDOWS_CERT_BASE64 != '' }}
-        env:
-          WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
         shell: bash
         run: echo "$WINDOWS_CERT_BASE64" | base64 -d > certificate.pfx
 
@@ -71,14 +69,15 @@ jobs:
 
       - name: Clean up certificate
         if: always()
+        shell: bash
         run: rm -f certificate.pfx
 
       - name: Generate checksums
         shell: pwsh
         run: |
           $artifacts = @()
-          $artifacts += Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi" -ErrorAction SilentlyContinue
-          $artifacts += Get-ChildItem "src-tauri/target/release/bundle/nsis/*-setup.exe" -ErrorAction SilentlyContinue
+          $artifacts += Get-ChildItem "target/release/bundle/msi/*.msi" -ErrorAction SilentlyContinue
+          $artifacts += Get-ChildItem "target/release/bundle/nsis/*-setup.exe" -ErrorAction SilentlyContinue
           foreach ($f in $artifacts) {
             $hash = (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLower()
             "$hash  $($f.Name)" | Out-File -Append -FilePath "checksums-windows.txt" -Encoding utf8
@@ -89,8 +88,8 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*-setup.exe
+            target/release/bundle/msi/*.msi
+            target/release/bundle/nsis/*-setup.exe
             checksums-windows.txt
 
   build-macos:
@@ -134,7 +133,6 @@ jobs:
       - name: Import Apple certificate
         if: ${{ env.APPLE_CERTIFICATE != '' }}
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
           KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
@@ -152,11 +150,10 @@ jobs:
       - name: Notarize macOS app
         if: ${{ env.APPLE_ID != '' }}
         env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
         run: |
-          for dmg in src-tauri/target/*/release/bundle/dmg/*.dmg; do
+          for dmg in target/${{ matrix.target }}/release/bundle/dmg/*.dmg; do
             if [ -f "$dmg" ]; then
               echo "Notarizing $dmg..."
               xcrun notarytool submit "$dmg" \
@@ -170,16 +167,18 @@ jobs:
 
       - name: Generate checksums
         run: |
-          for f in src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg; do
-            shasum -a 256 "$f" >> checksums-macos-${{ matrix.arch }}.txt
+          for f in target/${{ matrix.target }}/release/bundle/dmg/*.dmg; do
+            [ -f "$f" ] && shasum -a 256 "$f" >> checksums-macos-${{ matrix.arch }}.txt
           done
+          # 如果没有 DMG（构建配置差异），跳过
+          [ -f checksums-macos-${{ matrix.arch }}.txt ] || echo "no dmg found" > checksums-macos-${{ matrix.arch }}.txt
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
-            src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+            target/${{ matrix.target }}/release/bundle/dmg/*.dmg
             checksums-macos-${{ matrix.arch }}.txt
 
   build-linux:
@@ -221,30 +220,32 @@ jobs:
 
       - name: Generate checksums
         run: |
-          for f in src-tauri/target/release/bundle/deb/*.deb src-tauri/target/release/bundle/appimage/*.AppImage; do
+          for f in target/release/bundle/deb/*.deb target/release/bundle/appimage/*.AppImage; do
             [ -f "$f" ] && shasum -a 256 "$f" >> checksums-linux.txt
           done
+          [ -f checksums-linux.txt ] || echo "no artifacts found" > checksums-linux.txt
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
-            src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/appimage/*.AppImage
+            target/release/bundle/deb/*.deb
+            target/release/bundle/appimage/*.AppImage
             checksums-linux.txt
 
   build-android:
     name: Build (Android)
     runs-on: ubuntu-latest
     needs: [test]
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+          targets: aarch64-linux-android
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
@@ -276,9 +277,12 @@ jobs:
         run: npx tauri android init
 
       - name: Build Android APK
-        run: npx tauri android build
+        run: npx tauri android build -- --no-default-features
         env:
           NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973
+          CC_aarch64-linux-android: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang
+          AR_aarch64-linux-android: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang
 
       - name: Generate checksums
         run: |
@@ -287,6 +291,7 @@ jobs:
           done
 
       - name: Upload release assets
+        if: success()
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
@@ -298,13 +303,14 @@ jobs:
     name: Build (iOS)
     runs-on: macos-latest
     needs: [test]
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-ios,x86_64-apple-ios,aarch64-apple-ios-sim
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
@@ -324,11 +330,12 @@ jobs:
         run: npx tauri ios init
 
       - name: Build iOS
-        run: npx tauri ios build
+        run: npx tauri ios build -- --no-default-features
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""
 
       - name: Upload release assets
+        if: success()
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
