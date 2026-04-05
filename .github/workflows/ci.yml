@@ -91,7 +91,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ""
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lan-desk-windows
           path: target/release/bundle/msi/*.msi
@@ -140,7 +140,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ""
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lan-desk-macos-${{ matrix.arch }}
           path: target/${{ matrix.target }}/release/bundle/dmg/*.dmg
@@ -183,13 +183,13 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ""
 
       - name: Upload deb artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lan-desk-linux-deb
           path: target/release/bundle/deb/*.deb
 
       - name: Upload AppImage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lan-desk-linux-appimage
           path: target/release/bundle/appimage/*.AppImage
