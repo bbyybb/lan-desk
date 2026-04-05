@@ -166,6 +166,7 @@ struct SharedState {
 /// SPA 视频格式标识（简化版，仅覆盖常见格式）
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u32)]
+#[allow(clippy::upper_case_acronyms)]
 enum SpaFormat {
     BGRx = 0,
     RGBx = 1,
@@ -559,8 +560,8 @@ pub struct PipeWireCapture {
     shutdown_tx: std::sync::mpsc::Sender<()>,
     /// 后台线程句柄
     _thread: Option<std::thread::JoinHandle<()>>,
-    /// Portal 返回的 PipeWire fd，需要在 Drop 时关闭
-    pipewire_fd: Option<i32>,
+    /// Portal 返回的 PipeWire fd（所有权已转移给 connect_fd）
+    _pipewire_fd: Option<i32>,
 }
 
 impl PipeWireCapture {
@@ -637,7 +638,7 @@ impl PipeWireCapture {
             shared,
             shutdown_tx,
             _thread: Some(thread),
-            pipewire_fd: Some(pw_fd),
+            _pipewire_fd: Some(pw_fd),
         })
     }
 

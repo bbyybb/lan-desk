@@ -367,6 +367,7 @@ unsafe fn load_va_functions(
             if sym.is_null() {
                 anyhow::bail!("函数 {} 为空指针", String::from_utf8_lossy($name));
             }
+            #[allow(clippy::missing_transmute_annotations)]
             std::mem::transmute(*sym)
         }};
     }
@@ -978,7 +979,7 @@ impl VideoEncoder for VaapiEncoder {
         );
 
         let is_keyframe =
-            self.force_keyframe_flag || self.frame_count % self.keyframe_interval == 0;
+            self.force_keyframe_flag || self.frame_count.is_multiple_of(self.keyframe_interval);
         self.force_keyframe_flag = false;
 
         // surface 索引：交替使用 2 个 surface
