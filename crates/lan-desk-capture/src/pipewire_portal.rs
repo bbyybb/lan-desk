@@ -104,7 +104,9 @@ async fn negotiate_portal_session(saved_token: Option<String>) -> anyhow::Result
     let response = proxy
         .start(&session, None)
         .await
-        .context("Portal Start 失败（用户可能拒绝了授权）")?;
+        .context("Portal Start 失败（用户可能拒绝了授权）")?
+        .response()
+        .context("Portal Start response 解析失败")?;
 
     let stream = response
         .streams()
@@ -130,7 +132,7 @@ async fn negotiate_portal_session(saved_token: Option<String>) -> anyhow::Result
 
     let raw_fd = fd.into_raw_fd();
 
-    let new_restore_token = response.restore_token().map(|s| s.to_string());
+    let new_restore_token = response.restore_token().map(|s: &str| s.to_string());
 
     Ok(PortalResult {
         pipewire_fd: raw_fd,
@@ -306,9 +308,9 @@ fn pipewire_event_loop(
     use pipewire as pw;
 
     let mainloop = pw::main_loop::MainLoop::new(None)
-        .ok_or_else(|| anyhow::anyhow!("无法创建 PipeWire MainLoop"))?;
+        .map_err(|e| anyhow::anyhow!("无法创建 PipeWire MainLoop: {}", e))?;
     let context = pw::context::Context::new(&mainloop)
-        .ok_or_else(|| anyhow::anyhow!("无法创建 PipeWire Context"))?;
+        .map_err(|e| anyhow::anyhow!("无法创建 PipeWire Context: {}", e))?;
 
     // 通过 Portal fd 连接 PipeWire daemon
     let fd = unsafe { std::os::fd::BorrowedFd::borrow_raw(pipewire_fd) };
@@ -446,7 +448,7 @@ fn parse_format_from_pod(value: &pipewire::spa::pod::Value, shared: &Arc<SharedS
             match prop.key {
                 k if k == pipewire::spa::param::format::FormatProperties::VideoFormat.as_raw() => {
                     if let pipewire::spa::pod::Value::Id(id) = &prop.value {
-                        let fmt = spa_video_format_to_local(*id);
+                        let fmt = spa_video_format_to_local(id.0);
                         shared.pixel_format.store(fmt as u32, Ordering::Release);
                         debug!("PipeWire 协商像素格式: {:?}", fmt);
                     }
