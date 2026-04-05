@@ -119,18 +119,15 @@ checksum = "175571dd1d178ced59193a6fc02dde1b972eb0bc56c892cde9beeceac5bf0f6b"
 
 [[package]]
 name = "ashpd"
-version = "0.10.3"
+version = "0.13.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de3d60bee1a1d38c2077030f4788e1b4e31058d2e79a8cfc8f2b440bd44db290"
+checksum = "13bdf0fd848239dcd5e64eeeee35dbc00378ebcc6f3aa4ead0a305eec83d0cfb"
 dependencies = [
  "enumflags2",
- "futures-channel",
  "futures-util",
- "rand 0.8.5",
+ "getrandom 0.4.2",
  "serde",
- "serde_repr",
  "tokio",
- "url",
  "zbus",
 ]
 
@@ -7031,7 +7028,6 @@ dependencies = [
  "endi",
  "enumflags2",
  "serde",
- "url",
  "winnow 0.7.15",
  "zvariant_derive",
  "zvariant_utils",
