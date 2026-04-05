@@ -29,8 +29,9 @@
 
 ### 1.3 平台特殊说明
 
-- **macOS**：首次使用需在「系统设置 → 隐私与安全性」中授予「屏幕录制」和「辅助功能」权限。
-- **Linux**：需安装 X11 或 Wayland 相关依赖。Wayland 环境推荐安装 `grim`（截图）和 `ydotool`（输入注入）。
+- **macOS**：首次打开可能提示「文件已损坏」，在终端执行 `xattr -cr /Applications/LAN-Desk.app` 后再打开。首次使用需在「系统设置 → 隐私与安全性」中授予「屏幕录制」和「辅助功能」权限。
+- **Windows**：首次安装可能弹出 SmartScreen 警告，点击「更多信息」→「仍要运行」。
+- **Linux**：AppImage 需先赋予执行权限 `chmod +x *.AppImage`。需安装 X11 或 Wayland 相关依赖。Wayland 环境推荐安装 `grim`（截图）和 `ydotool`（输入注入）。
 - **防火墙**：需放行 TCP 25605 和 UDP 25606 端口。
 
 ---
@@ -468,8 +469,9 @@ Mobile devices are supported as **controller only** (remote control a computer f
 
 ### 1.3 Platform Notes
 
-- **macOS**: Grant "Screen Recording" and "Accessibility" permissions in System Settings → Privacy & Security on first use.
-- **Linux**: Install X11 or Wayland dependencies. For Wayland, install `grim` (screenshot) and `ydotool` (input injection).
+- **macOS**: On first launch you may see "file is damaged". Run `xattr -cr /Applications/LAN-Desk.app` in Terminal, then open again. Grant "Screen Recording" and "Accessibility" permissions in System Settings → Privacy & Security.
+- **Windows**: SmartScreen may warn on first install. Click "More info" → "Run anyway".
+- **Linux**: AppImage needs execute permission: `chmod +x *.AppImage`. Install X11 or Wayland dependencies. For Wayland, install `grim` (screenshot) and `ydotool` (input injection).
 - **Firewall**: Allow TCP 25605 and UDP 25606.
 
 ---

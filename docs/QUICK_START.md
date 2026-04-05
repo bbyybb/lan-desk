@@ -18,6 +18,22 @@ LAN-Desk 是一款局域网远程桌面工具，3 分钟即可开始使用。
 | Android | `.apk` | 见下方移动端安装说明 |
 | iOS | `.ipa` | 见下方移动端安装说明 |
 
+### 安装注意事项
+
+**macOS：** 由于应用未经 Apple 签名，首次打开时可能提示「文件已损坏」或「无法验证开发者」。请在终端执行以下命令后再打开：
+
+```bash
+xattr -cr /Applications/LAN-Desk.app
+```
+
+**Windows：** 首次安装时可能弹出 SmartScreen 警告「Windows 已保护你的电脑」，点击「更多信息」→「仍要运行」即可。
+
+**Linux AppImage：** 如果双击无法打开，需先赋予执行权限：
+
+```bash
+chmod +x LAN-Desk_*.AppImage
+```
+
 ### 移动端安装（Android / iOS）
 
 移动端定位为**仅控制端**——用手机或平板远程操控桌面电脑，不做被控端。
@@ -135,6 +151,22 @@ Download from [Releases](https://github.com/bbyybb/lan-desk/releases/latest):
 | Linux (Generic) | `.AppImage` | `chmod +x *.AppImage && ./*.AppImage` |
 | Android | `.apk` | See Mobile Installation below |
 | iOS | `.ipa` | See Mobile Installation below |
+
+### Installation Notes
+
+**macOS:** The app is not Apple-signed. On first launch you may see "file is damaged" or "cannot verify developer". Run this command in Terminal, then open again:
+
+```bash
+xattr -cr /Applications/LAN-Desk.app
+```
+
+**Windows:** You may see a SmartScreen warning on first install. Click "More info" → "Run anyway".
+
+**Linux AppImage:** If double-click doesn't work, grant execute permission first:
+
+```bash
+chmod +x LAN-Desk_*.AppImage
+```
 
 ### Mobile Installation (Android / iOS)
 
