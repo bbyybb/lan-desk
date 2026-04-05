@@ -232,27 +232,24 @@ impl InputInjector for LinuxInputInjector {
         use x11rb::connection::Connection;
         use x11rb::protocol::xproto;
 
-        match xproto::query_pointer(&self.conn, self.root) {
-            Ok(cookie) => {
-                if let Ok(reply) = cookie.reply() {
-                    let bounds = self
-                        .active_monitor
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner());
-                    let x = if bounds.width > 0.0 {
-                        (reply.root_x as f64 - bounds.left) / bounds.width
-                    } else {
-                        0.0
-                    };
-                    let y = if bounds.height > 0.0 {
-                        (reply.root_y as f64 - bounds.top) / bounds.height
-                    } else {
-                        0.0
-                    };
-                    return (x.clamp(0.0, 1.0), y.clamp(0.0, 1.0));
-                }
+        if let Ok(cookie) = xproto::query_pointer(&self.conn, self.root) {
+            if let Ok(reply) = cookie.reply() {
+                let bounds = self
+                    .active_monitor
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
+                let x = if bounds.width > 0.0 {
+                    (reply.root_x as f64 - bounds.left) / bounds.width
+                } else {
+                    0.0
+                };
+                let y = if bounds.height > 0.0 {
+                    (reply.root_y as f64 - bounds.top) / bounds.height
+                } else {
+                    0.0
+                };
+                return (x.clamp(0.0, 1.0), y.clamp(0.0, 1.0));
             }
-            Err(_) => {}
         }
         (0.0, 0.0)
     }

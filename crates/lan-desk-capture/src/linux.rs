@@ -249,8 +249,8 @@ pub fn list_monitors_linux() -> anyhow::Result<Vec<MonitorInfo>> {
                 let name = conn
                     .get_atom_name(m.name)
                     .ok()
-                    .and_then(|r| r.reply().ok())
-                    .map(|r| String::from_utf8_lossy(&r.name).to_string())
+                    .and_then(|cookie| cookie.reply().ok())
+                    .map(|reply| String::from_utf8_lossy(&reply.name).to_string())
                     .unwrap_or_else(|| format!("Monitor {}", i));
 
                 MonitorInfo {

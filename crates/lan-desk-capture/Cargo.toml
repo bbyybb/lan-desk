@@ -15,7 +15,7 @@ lan-desk-protocol = { path = "../lan-desk-protocol" }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 image = { version = "0.25", default-features = false, features = ["jpeg"] }
-openh264 = "0.6"
+openh264 = "0.8"
 rayon = "1.10"
 
 [target.'cfg(target_os = "macos")'.dependencies]

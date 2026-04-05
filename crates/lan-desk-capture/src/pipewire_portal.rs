@@ -494,14 +494,18 @@ fn process_frame(stream: &pipewire::stream::Stream, shared: &Arc<SharedState>) {
     }
 
     let data = &mut datas[0];
-    let chunk = data.chunk();
 
-    let size = chunk.size() as usize;
+    // 先从 chunk 读取 size 和 stride（不可变借用），再做可变借用获取像素数据
+    let (size, stride) = {
+        let chunk = data.chunk();
+        (chunk.size() as usize, chunk.stride() as u32)
+    };
+
     if size == 0 {
         return;
     }
 
-    // 获取像素数据指针（MemFd/MemPtr 映射）
+    // 获取像素数据指针（MemFd/MemPtr 映射）— 需要可变借用
     let slice = data.data();
     if slice.is_none() {
         // DMA-BUF 传输，当前版本不支持（需要 EGL 导入）
@@ -517,7 +521,6 @@ fn process_frame(stream: &pipewire::stream::Stream, shared: &Arc<SharedState>) {
     let width = shared.width.load(Ordering::Acquire);
     let height = shared.height.load(Ordering::Acquire);
     let format = SpaFormat::from(shared.pixel_format.load(Ordering::Acquire));
-    let stride = chunk.stride() as u32;
 
     // 使用实际 stride（如果有效），否则根据宽度计算
     let effective_stride = if stride > 0 { stride } else { width * 4 };
