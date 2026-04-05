@@ -49,9 +49,9 @@ pub struct WaylandInputInjector {
     /// 选定的输入注入方式
     method: InputMethod,
     /// 屏幕宽度（像素）
-    screen_width: u32,
+    _screen_width: u32,
     /// 屏幕高度（像素）
-    screen_height: u32,
+    _screen_height: u32,
     /// 缓存的鼠标位置（归一化 0.0~1.0），因为 Wayland 无法直接查询
     cached_cursor_pos: Mutex<(f64, f64)>,
     /// dotool 长驻子进程（通过 stdin 管道发送命令，避免频繁 fork）
@@ -106,8 +106,8 @@ impl WaylandInputInjector {
 
         Ok(Self {
             method,
-            screen_width,
-            screen_height,
+            _screen_width: screen_width,
+            _screen_height: screen_height,
             cached_cursor_pos: Mutex::new((0.5, 0.5)),
             dotool_process,
             active_monitor: Mutex::new(ActiveMonitorBounds {
@@ -519,7 +519,7 @@ impl WaylandInputInjector {
             .map_err(|e| anyhow::anyhow!("获取 dotool 进程锁失败: {}", e))?;
 
         // 尝试通过长驻子进程发送
-        let mut need_respawn = false;
+        let need_respawn;
         if let Some(ref mut child) = *guard {
             if let Some(ref mut stdin) = child.stdin {
                 match writeln!(stdin, "{}", command) {

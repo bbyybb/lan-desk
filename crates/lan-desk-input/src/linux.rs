@@ -20,8 +20,8 @@ struct ActiveMonitorBounds {
 pub struct LinuxInputInjector {
     conn: x11rb::rust_connection::RustConnection,
     root: u32,
-    screen_width: f64,
-    screen_height: f64,
+    _screen_width: f64,
+    _screen_height: f64,
     /// 缓存的键盘映射 (keysym -> keycode)
     keymap_cache: std::collections::HashMap<u32, u8>,
     /// XFixes 扩展是否可用（用于光标形状检测）
@@ -94,8 +94,8 @@ impl LinuxInputInjector {
         Ok(Self {
             conn,
             root,
-            screen_width,
-            screen_height,
+            _screen_width: screen_width,
+            _screen_height: screen_height,
             keymap_cache,
             xfixes_available,
             active_monitor: Mutex::new(ActiveMonitorBounds {
@@ -229,7 +229,6 @@ impl InputInjector for LinuxInputInjector {
     }
 
     fn cursor_position(&self) -> (f64, f64) {
-        use x11rb::connection::Connection;
         use x11rb::protocol::xproto;
 
         if let Ok(cookie) = xproto::query_pointer(&self.conn, self.root) {
@@ -259,7 +258,6 @@ impl InputInjector for LinuxInputInjector {
             return CursorShape::Arrow;
         }
 
-        use x11rb::connection::Connection;
         use x11rb::protocol::xfixes;
         use x11rb::protocol::xproto;
 

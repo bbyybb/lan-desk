@@ -80,7 +80,10 @@ pub fn hash_pin(pin: &str, salt: &str) -> String {
 /// - 检测并替换 Windows 保留设备名（CON/NUL/AUX/PRN/COM1-9/LPT1-9）
 /// - 空字符串或纯 `.` 的文件名回退到 `fallback`
 pub fn sanitize_filename(filename: &str, fallback: &str) -> String {
-    let safe = std::path::Path::new(filename)
+    // 先统一将反斜杠替换为正斜杠，确保跨平台一致解析路径分隔符
+    // （Unix 上 `\` 是合法文件名字符，Path::file_name 不会拆分）
+    let normalized = filename.replace('\\', "/");
+    let safe = std::path::Path::new(&normalized)
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| fallback.to_string());
