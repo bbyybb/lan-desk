@@ -6,9 +6,12 @@ mod file_transfer;
 mod input;
 #[cfg(not(feature = "desktop"))]
 pub mod mobile_stubs;
+#[cfg(feature = "desktop")]
 pub mod remote_control;
+#[cfg(feature = "desktop")]
 pub mod screen_blank;
 mod server;
+#[cfg(feature = "desktop")]
 mod shell;
 pub mod special_keys;
 
@@ -68,4 +71,5 @@ pub use file_browser::*;
 pub use file_transfer::*;
 pub use input::*;
 pub use server::*;
+#[cfg(feature = "desktop")]
 pub use shell::*;
