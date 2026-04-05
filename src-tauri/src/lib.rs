@@ -3,6 +3,7 @@ mod portable;
 mod state;
 mod ws_bridge;
 
+#[cfg(feature = "desktop")]
 use tauri::Manager;
 #[cfg(feature = "desktop")]
 use tauri::{

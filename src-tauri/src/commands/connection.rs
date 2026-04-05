@@ -368,7 +368,7 @@ pub async fn connect_to_peer(
         #[cfg(feature = "desktop")]
         let mut opus_decoder: Option<lan_desk_audio::opus_codec::OpusDecoder> = None;
         #[cfg(not(feature = "desktop"))]
-        let mut opus_decoder: Option<()> = None; // 移动端不支持 Opus 解码
+        let _opus_decoder: Option<()> = None; // 移动端不支持 Opus 解码
         let mut file_transfers: std::collections::HashMap<u32, std::path::PathBuf> =
             std::collections::HashMap::new();
 
@@ -441,6 +441,7 @@ pub async fn connect_to_peer(
                                 "memory_total_mb": memory_total_mb,
                             }));
                         }
+                        #[allow(unused_variables)]
                         Some(Ok(Message::AudioFormat { sample_rate, channels, bits_per_sample, encoding })) => {
                             // 如果远端使用 Opus 编码，创建解码器（仅桌面端支持）
                             #[cfg(feature = "desktop")]

@@ -11,6 +11,8 @@ use crate::ScreenCapture;
 use lan_desk_protocol::message::MonitorInfo;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::{info, warn};
+use x11rb::connection::Connection;
+use x11rb::protocol::xproto::ConnectionExt as _;
 
 pub struct LinuxCapture {
     conn: x11rb::rust_connection::RustConnection,
@@ -221,7 +223,6 @@ fn get_monitor_geometry(
     root: u32,
     index: usize,
 ) -> Option<(u32, u32)> {
-    use x11rb::connection::Connection;
     use x11rb::protocol::randr;
 
     let monitors = randr::get_monitors(conn, root, true).ok()?.reply().ok()?;
@@ -233,7 +234,6 @@ fn get_monitor_geometry(
 
 /// 枚举所有显示器（通过 RandR）
 pub fn list_monitors_linux() -> anyhow::Result<Vec<MonitorInfo>> {
-    use x11rb::connection::Connection;
     use x11rb::protocol::randr;
 
     let result = (|| -> anyhow::Result<Vec<MonitorInfo>> {

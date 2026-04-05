@@ -76,7 +76,8 @@ struct PortalResult {
 
 /// 通过 XDG Desktop Portal 协商屏幕捕获会话（async）
 async fn negotiate_portal_session(saved_token: Option<String>) -> anyhow::Result<PortalResult> {
-    use ashpd::desktop::screencast::{CursorMode, PersistMode, Screencast, SourceType};
+    use ashpd::desktop::screencast::{CursorMode, Screencast, SourceType};
+    use ashpd::desktop::PersistMode;
 
     let proxy = Screencast::new()
         .await

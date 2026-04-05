@@ -11,7 +11,7 @@ use crate::ScreenCapture;
 use lan_desk_protocol::message::MonitorInfo;
 use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
 /// 捕获方式枚举
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

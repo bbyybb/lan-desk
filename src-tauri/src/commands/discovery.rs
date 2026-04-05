@@ -76,7 +76,10 @@ pub async fn set_fixed_pins(
 
 #[tauri::command]
 pub async fn discover_peers(state: State<'_, AppState>) -> Result<Vec<PeerInfo>, String> {
+    #[cfg(feature = "desktop")]
     let port = state.server.read().await.port;
+    #[cfg(not(feature = "desktop"))]
+    let port = lan_desk_protocol::DEFAULT_TCP_PORT;
 
     let hostname = hostname::get()
         .map(|h| h.to_string_lossy().to_string())
