@@ -594,7 +594,7 @@ impl VaapiEncoder {
 
         // 10. 创建编码输出缓冲区 (coded buffer)
         // 大小估算：宽*高 用于存储编码后的码流数据
-        let coded_buf_size = (width * height) as u32;
+        let coded_buf_size = width * height;
         let mut coded_buf: VABufferID = VA_INVALID_ID;
         let status = unsafe {
             (funcs.vaCreateBuffer)(
@@ -721,8 +721,8 @@ impl VaapiEncoder {
 
     /// 构建 SPS (序列参数集) 缓冲区
     fn create_seq_param_buffer(&self, is_keyframe: bool) -> anyhow::Result<VABufferID> {
-        let width_in_mbs = (self.width + 15) / 16;
-        let height_in_mbs = (self.height + 15) / 16;
+        let width_in_mbs = self.width.div_ceil(16);
+        let height_in_mbs = self.height.div_ceil(16);
 
         // seq_fields 位域：
         // bit 0: chroma_format_idc (1 = 4:2:0) — 使用低 2 位
@@ -737,10 +737,10 @@ impl VaapiEncoder {
         // bit 14: log2_max_pic_order_cnt_lsb_minus4 = 2 (max_poc_lsb = 64)
         // bit 18: delta_pic_order_always_zero_flag = 0
         let seq_fields: u32 =
-            1           // chroma_format_idc = 1 (4:2:0)
+            1_u32       // chroma_format_idc = 1 (4:2:0)
             | (1 << 4)  // frame_mbs_only_flag = 1
             | (4 << 8)  // log2_max_frame_num_minus4 = 4
-            | (0 << 12) // pic_order_cnt_type = 0
+            // pic_order_cnt_type = 0（bit 12，值为 0 无需显式设置）
             | (2 << 14) // log2_max_pic_order_cnt_lsb_minus4 = 2
         ;
 
@@ -776,8 +776,8 @@ impl VaapiEncoder {
         };
 
         // 处理非 16 像素对齐的分辨率裁剪
-        let aligned_width = width_in_mbs as u32 * 16;
-        let aligned_height = height_in_mbs as u32 * 16;
+        let aligned_width = width_in_mbs * 16;
+        let aligned_height = height_in_mbs * 16;
         if aligned_width != self.width || aligned_height != self.height {
             sps.frame_cropping_flag = 1;
             sps.frame_crop_right_offset = (aligned_width - self.width) / 2;
@@ -892,8 +892,8 @@ impl VaapiEncoder {
         ref_surface: VASurfaceID,
         is_keyframe: bool,
     ) -> anyhow::Result<VABufferID> {
-        let width_in_mbs = (self.width + 15) / 16;
-        let height_in_mbs = (self.height + 15) / 16;
+        let width_in_mbs = self.width.div_ceil(16);
+        let height_in_mbs = self.height.div_ceil(16);
         let total_mbs = width_in_mbs * height_in_mbs;
 
         let slice_type: u8 = if is_keyframe { 2 } else { 0 }; // 2=I, 0=P
