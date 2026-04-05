@@ -176,8 +176,8 @@ apksigner verify --verbose lan-desk-signed.apk
 配置 Secrets 后无需修改任何代码，推送 `v*` tag 即可触发自动签名：
 
 ```bash
-git tag v1.0.1
-git push origin v1.0.1
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 在 GitHub Actions → Release workflow 中查看各平台构建是否成功。
@@ -363,8 +363,8 @@ For Tauri's built-in app update feature:
 After configuring Secrets, no code changes needed. Push a `v*` tag to trigger automatic signing:
 
 ```bash
-git tag v1.0.1
-git push origin v1.0.1
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 Check GitHub Actions → Release workflow for build results on each platform.

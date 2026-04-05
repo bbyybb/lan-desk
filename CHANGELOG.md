@@ -8,52 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
-## [v1.0.1] - 2026-04-06
+## [v1.0.0] - 2026-04-06
 
-v1.0.0 发布后的首个修复版本，包含多项 CI 修复、安全增强和文档补充。
+首个正式版，包含全部核心功能以及大量安全/平台/架构增强。以下为完整变更记录。
 
-### Added / 新增
-
-- **完整用户手册** `docs/USER_GUIDE.md`：中英双语，12 个章节覆盖全部功能的详细操作说明
-- **代码签名指南** `docs/CODE_SIGNING.md`：iOS/macOS/Windows/Android 四平台签名配置文档
-- **cargo audit** CI：新增 Security Audit job，自动检测依赖安全漏洞
-- **Android 自动签名**：Release CI 支持通过 GitHub Secrets 自动签名 APK
-- **Android x86_64 支持**：APK 包含 ARM64 + x86_64 双架构，支持模拟器运行
-
-### Fixed / 修复
-
-- **PipeWire Portal API**：修复 `ashpd` 0.10 的 `PersistMode` 导入路径、`start().response()` 调用、`SourceType::Monitor.into()` 类型转换、`OwnedFd` vs `BorrowedFd`、`StreamRef` vs `Stream`、`mainloop.loop_().iterate()` 等 API 不匹配
-- **x11rb trait scope**：`Connection`/`ConnectionExt`/`WrapperConnectionExt` 提升到模块顶层，修复 `flush()`/`sync()`/`get_atom_name()` 找不到的问题
-- **LinuxCapture Sync**：添加 `unsafe impl Sync for LinuxCapture` 满足 `ScreenCapture: Send + Sync` 约束
-- **macOS DPI 测试**：`catch_unwind` 包裹 `NSScreen` 调用，修复无头 CI 环境 panic
-- **sanitize_filename 跨平台**：先 `replace('\\', "/")` 再 `file_name()`，修复 macOS/Linux 上反斜杠未被识别为分隔符的问题
-- **openh264 安全漏洞**：从 0.6 升级到 0.8，修复 RUSTSEC-2025-0008 堆溢出漏洞
-- **VA-API clippy**：`div_ceil`、`is_multiple_of`、移除多余 cast、`identity_op`、`transmute` 注解
-- **Clippy 全量修复**：`derivable_impls`、`single_match`、`while_let_loop`、`repeat_n`、`drop_non_drop`、`type_complexity`、dead code 等 30+ 处
-- **前端 lint**：修复 22 处 `no-empty`、3 处 `Function` 类型、3 处 `prefer-const`
-- **Android NDK 工具链**：设置 `CC_aarch64-linux-android` 等环境变量修复交叉编译找不到 clang
-- **Android mobile 编译**：`state.server` 添加 `#[cfg(feature = "desktop")]` 分支，移动端使用默认端口
-- **Release workflow**：修复 `secrets` 条件语法、`rm -f` PowerShell 兼容、产物路径 `src-tauri/target/` → `target/`
-
-### Changed / 变更
-
-- **PIN 码增强**：随机 PIN 从 6 位增加到 8 位（9000 万种组合 vs 90 万种）
-- **语言检测默认英文**：检测不到系统语言时默认使用英文（而非中文）
-- **Mutex 中毒恢复**：`lock().unwrap()` 改为 `lock().unwrap_or_else(|e| e.into_inner())`（17 处）
-- **PipeWire 错误传播**：6 处 `expect()` 改为 `?` + `map_err`，不再 panic
-- **目录传输路径统一**：`to_string_lossy()` 后添加 `.replace('\\', "/")`，确保跨平台兼容
-- **is_safe_path 符号链接**：验证前先 `canonicalize()` 解析符号链接
-- **Android 设备 ID**：移动端改用持久化 UUID，避免 hostname 重复
-- **Cargo.toml 元数据**：所有 crate 添加 `description` 和 `repository`（workspace 继承）
-- **Android/iOS CI**：`continue-on-error: true`，移动端构建失败不阻塞桌面端发布
-
----
-
-## [v1.0.0] - 2026-04-03
-
-首个正式版，包含全部核心功能以及大量安全/平台/架构增强。
-
-### Added / 新增
+### Added / 新增（核心功能）
 
 - **多显示器精确坐标映射**：InputInjector 新增 `set_active_monitor()` 方法，`cursor_position()` 和 `move_mouse()` 基于当前捕获显示器归一化（而非虚拟桌面全局），Windows/macOS/Linux/Wayland 全平台适配
 - **远程显示器列表推送**：被控端会话建立后通过 `MonitorList` 协议消息自动推送显示器列表（含 left/top 像素偏移），`SwitchMonitor` 时同步更新输入坐标映射
@@ -67,6 +26,11 @@ v1.0.0 发布后的首个修复版本，包含多项 CI 修复、安全增强和
 - **MonitorList 竞态修复**：缓存远程显示器列表到 ConnState，RemoteView 挂载时通过 `get_remote_monitors` 命令获取（解决事件在监听器注册前丢失的问题）
 - **终端设置动态生效**：`shell_enabled` 改为 `Arc<AtomicBool>` 共享，运行中的 Server 每次 accept 读取最新值
 - **WebM 录制进度条修复**：录制结束时自动注入 Duration 元数据到 EBML 头，播放器可正确显示/拖动进度条
+- **完整用户手册** `docs/USER_GUIDE.md`：中英双语，12 个章节覆盖全部功能的详细操作说明
+- **代码签名指南** `docs/CODE_SIGNING.md`：iOS/macOS/Windows/Android 四平台签名配置文档
+- **cargo audit** CI：新增 Security Audit job，自动检测依赖安全漏洞
+- **Android 自动签名**：Release CI 支持通过 GitHub Secrets 自动签名 APK
+- **Android x86_64 支持**：APK 包含 ARM64 + x86_64 双架构，支持模拟器运行
 
 - PIN 暴力破解防护：指数退避锁定策略（5次失败后锁定5分钟→15分钟→45分钟→…→最长24小时），全局速率限制每分钟最多10次失败
 - 文件传输过滤 Windows 保留设备名（CON/NUL/AUX/PRN/COM1-9/LPT1-9），防止写入系统设备
@@ -185,6 +149,18 @@ v1.0.0 发布后的首个修复版本，包含多项 CI 修复、安全增强和
 - **useSettings reset()**：`reset()` 后 `loaded` 标志正确重置为 `false`，确保后续 `load()` 能从 localStorage 重新读取
 - **Discovery 扫描错误提示**：`scanPeers` 失败时使用 `toast.error` 提示用户，与其他操作保持一致
 - **build.sh Linux**：Linux 分支补充 cargo/node 前置依赖检查
+- **PipeWire Portal API**：修复 `ashpd` 0.10 的 `PersistMode` 导入路径、`start().response()` 调用、`SourceType::Monitor.into()` 类型转换、`OwnedFd` vs `BorrowedFd`、`StreamRef` vs `Stream`、`mainloop.loop_().iterate()` 等 API 不匹配
+- **x11rb trait scope**：`Connection`/`ConnectionExt`/`WrapperConnectionExt` 提升到模块顶层，修复 `flush()`/`sync()`/`get_atom_name()` 找不到的问题
+- **LinuxCapture Sync**：添加 `unsafe impl Sync for LinuxCapture` 满足 `ScreenCapture: Send + Sync` 约束
+- **macOS DPI 测试**：`catch_unwind` 包裹 `NSScreen` 调用，修复无头 CI 环境 panic
+- **sanitize_filename 跨平台**：先 `replace('\\', "/")` 再 `file_name()`，修复 macOS/Linux 上反斜杠未被识别为分隔符的问题
+- **openh264 安全漏洞**：从 0.6 升级到 0.8，修复 RUSTSEC-2025-0008 堆溢出漏洞
+- **VA-API clippy**：`div_ceil`、`is_multiple_of`、移除多余 cast、`identity_op`、`transmute` 注解
+- **Clippy 全量修复**：`derivable_impls`、`single_match`、`while_let_loop`、`repeat_n`、`drop_non_drop`、`type_complexity`、dead code 等 30+ 处
+- **前端 lint**：修复 22 处 `no-empty`、3 处 `Function` 类型、3 处 `prefer-const`
+- **Android NDK 工具链**：设置 `CC_aarch64-linux-android` 等环境变量修复交叉编译找不到 clang
+- **Android mobile 编译**：`state.server` 添加 `#[cfg(feature = "desktop")]` 分支，移动端使用默认端口
+- **Release workflow**：修复 `secrets` 条件语法、`rm -f` PowerShell 兼容、产物路径 `src-tauri/target/` → `target/`
 
 ### Changed / 变更
 
@@ -218,53 +194,23 @@ v1.0.0 发布后的首个修复版本，包含多项 CI 修复、安全增强和
 - **CI**：所有 Linux CI job 添加 `libpipewire-0.3-dev` 系统依赖；移除 lint job 中重复的前端测试
 - **前端常量提取**：`RemoteView.vue` 帧头大小提取为 `FRAME_HEADER_SIZE`；`useStats.ts` 延迟阈值提取为 `MAX_REASONABLE_LATENCY_MS`
 - **.gitignore**：补充 `*.pfx` 和 `*.p12` 代码签名证书文件类型
+- **PIN 码增强**：随机 PIN 从 6 位增加到 8 位（9000 万种组合 vs 90 万种）
+- **语言检测默认英文**：检测不到系统语言时默认使用英文（而非中文）
+- **Mutex 中毒恢复**：`lock().unwrap()` 改为 `lock().unwrap_or_else(|e| e.into_inner())`（17 处）
+- **PipeWire 错误传播**：6 处 `expect()` 改为 `?` + `map_err`，不再 panic
+- **目录传输路径统一**：`to_string_lossy()` 后添加 `.replace('\\', "/")`，确保跨平台兼容
+- **is_safe_path 符号链接**：验证前先 `canonicalize()` 解析符号链接
+- **Android 设备 ID**：移动端改用持久化 UUID，避免 hostname 重复
+- **Cargo.toml 元数据**：所有 crate 添加 `description` 和 `repository`（workspace 继承）
+- **Android/iOS CI**：`continue-on-error: true`，移动端构建失败不阻塞桌面端发布
 
 ---
 
-## [v1.0.1] - 2026-04-06 (English)
-
-First patch release after v1.0.0, with CI fixes, security enhancements, and documentation.
-
-### Added
-
-- **Complete User Guide** `docs/USER_GUIDE.md`: Bilingual, 12 chapters covering all features
-- **Code Signing Guide** `docs/CODE_SIGNING.md`: iOS/macOS/Windows/Android signing setup
-- **cargo audit** CI: Automatic dependency vulnerability scanning
-- **Android auto-signing**: Release CI supports APK signing via GitHub Secrets
-- **Android x86_64 support**: APK includes ARM64 + x86_64 for emulator compatibility
-
-### Fixed
-
-- **PipeWire Portal API**: Fixed `ashpd` 0.10 import paths, `Request.response()`, `SourceType.into()`, `OwnedFd`, `StreamRef`, `mainloop.loop_().iterate()`
-- **x11rb trait scope**: Moved `Connection`/`ConnectionExt` to module-level imports
-- **LinuxCapture Sync**: Added `unsafe impl Sync` for `ScreenCapture` trait bound
-- **macOS DPI test**: `catch_unwind` for headless CI environments
-- **sanitize_filename cross-platform**: Normalize `\` to `/` before `file_name()`
-- **openh264 vulnerability**: Upgraded 0.6 → 0.8, fixing RUSTSEC-2025-0008
-- **30+ clippy fixes**: `derivable_impls`, `single_match`, `div_ceil`, `is_multiple_of`, dead code, etc.
-- **Frontend lint**: Fixed 22 `no-empty`, 3 `Function` type, 3 `prefer-const` errors
-- **Android NDK toolchain**: Set `CC_aarch64-linux-android` env vars for cross-compilation
-- **Release workflow**: Fixed `secrets` condition syntax, PowerShell `rm -f`, artifact paths
-
-### Changed
-
-- **PIN strength**: Random PIN increased from 6 to 8 digits (90M vs 900K combinations)
-- **Language detection**: Default to English when system language is undetectable
-- **Mutex poisoning recovery**: 17 `lock().unwrap()` → `lock().unwrap_or_else(|e| e.into_inner())`
-- **PipeWire error propagation**: 6 `expect()` → `?` with `map_err`
-- **Directory transfer paths**: Normalize `\` to `/` for cross-platform compatibility
-- **is_safe_path symlink**: `canonicalize()` before validation
-- **Android Device ID**: Persistent UUID instead of hostname
-- **Cargo.toml metadata**: Added `description` and `repository` to all crates
-- **Android/iOS CI**: `continue-on-error: true` — mobile failures don't block desktop releases
-
----
-
-## [v1.0.0] - 2026-04-03 (English)
+## [v1.0.0] - 2026-04-06 (English)
 
 First official release with full-featured LAN remote desktop capabilities.
 
-### Added
+### Added (Core Features)
 
 - **Multi-monitor precise coordinate mapping**: InputInjector `set_active_monitor()` method; `cursor_position()` and `move_mouse()` normalize to the active captured monitor (not the entire virtual desktop). Windows/macOS/Linux/Wayland all adapted
 - **Remote monitor list push**: Host sends `MonitorList` protocol message (with left/top pixel offsets) after session establishment; `SwitchMonitor` auto-updates input coordinate mapping
@@ -278,6 +224,11 @@ First official release with full-featured LAN remote desktop capabilities.
 - **MonitorList race condition fix**: Cache remote monitor list in ConnState; RemoteView fetches via `get_remote_monitors` on mount (fixes event lost before listener registered)
 - **Dynamic terminal settings**: `shell_enabled` changed to `Arc<AtomicBool>`, running Server reads latest value on each accept
 - **WebM recording seekbar fix**: Auto-inject Duration metadata into EBML header after recording stops
+- **Complete User Guide** `docs/USER_GUIDE.md`: Bilingual, 12 chapters covering all features
+- **Code Signing Guide** `docs/CODE_SIGNING.md`: iOS/macOS/Windows/Android signing setup
+- **cargo audit** CI: Automatic dependency vulnerability scanning
+- **Android auto-signing**: Release CI supports APK signing via GitHub Secrets
+- **Android x86_64 support**: APK includes ARM64 + x86_64 for emulator compatibility
 
 - PIN brute-force protection: exponential backoff lockout (5 failures → 5min → 15min → 45min → … → 24h max), global rate limit of 10 failures per minute
 - File transfer filters Windows reserved device names (CON/NUL/AUX/PRN/COM1-9/LPT1-9) to prevent writing to system devices
@@ -396,6 +347,16 @@ First official release with full-featured LAN remote desktop capabilities.
 - **useSettings reset()**: `loaded` flag properly reset to `false`, ensuring subsequent `load()` reads from localStorage
 - **Discovery scan error feedback**: `scanPeers` failures now show `toast.error` instead of silent `console.error`
 - **build.sh Linux**: Added cargo/node prerequisite checks for Linux branch
+- **PipeWire Portal API**: Fixed `ashpd` 0.10 import paths, `Request.response()`, `SourceType.into()`, `OwnedFd`, `StreamRef`, `mainloop.loop_().iterate()`
+- **x11rb trait scope**: Moved `Connection`/`ConnectionExt` to module-level imports
+- **LinuxCapture Sync**: Added `unsafe impl Sync` for `ScreenCapture` trait bound
+- **macOS DPI test**: `catch_unwind` for headless CI environments
+- **sanitize_filename cross-platform**: Normalize `\` to `/` before `file_name()`
+- **openh264 vulnerability**: Upgraded 0.6 → 0.8, fixing RUSTSEC-2025-0008
+- **30+ clippy fixes**: `derivable_impls`, `single_match`, `div_ceil`, `is_multiple_of`, dead code, etc.
+- **Frontend lint**: Fixed 22 `no-empty`, 3 `Function` type, 3 `prefer-const` errors
+- **Android NDK toolchain**: Set `CC_aarch64-linux-android` env vars for cross-compilation
+- **Release workflow**: Fixed `secrets` condition syntax, PowerShell `rm -f`, artifact paths
 
 ### Changed
 
@@ -429,7 +390,15 @@ First official release with full-featured LAN remote desktop capabilities.
 - **CI**: All Linux CI jobs now install `libpipewire-0.3-dev`; removed duplicate frontend test from lint job
 - **Frontend constants**: Extracted magic numbers into named constants (`FRAME_HEADER_SIZE`, `MAX_REASONABLE_LATENCY_MS`)
 - **.gitignore**: Added `*.pfx` and `*.p12` code signing certificate patterns
+- **PIN strength**: Random PIN increased from 6 to 8 digits (90M vs 900K combinations)
+- **Language detection**: Default to English when system language is undetectable
+- **Mutex poisoning recovery**: 17 `lock().unwrap()` → `lock().unwrap_or_else(|e| e.into_inner())`
+- **PipeWire error propagation**: 6 `expect()` → `?` with `map_err`
+- **Directory transfer paths**: Normalize `\` to `/` for cross-platform compatibility
+- **is_safe_path symlink**: `canonicalize()` before validation
+- **Android Device ID**: Persistent UUID instead of hostname
+- **Cargo.toml metadata**: Added `description` and `repository` to all crates
+- **Android/iOS CI**: `continue-on-error: true` — mobile failures don't block desktop releases
 
 <!-- Version comparison links -->
-[v1.0.1]: https://github.com/bbyybb/lan-desk/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/bbyybb/lan-desk/releases/tag/v1.0.0
