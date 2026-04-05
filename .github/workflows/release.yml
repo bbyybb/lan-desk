@@ -33,6 +33,8 @@ jobs:
     name: Build (Windows)
     runs-on: windows-latest
     needs: [test]
+    env:
+      WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
     steps:
       - uses: actions/checkout@v4
 
@@ -54,7 +56,7 @@ jobs:
         run: npm ci
 
       - name: Import code signing certificate
-        if: ${{ secrets.WINDOWS_CERT_BASE64 != '' }}
+        if: ${{ env.WINDOWS_CERT_BASE64 != '' }}
         env:
           WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
         shell: bash
@@ -95,6 +97,9 @@ jobs:
     name: Build (macOS ${{ matrix.arch }})
     runs-on: macos-latest
     needs: [test]
+    env:
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
     strategy:
       fail-fast: false
       matrix:
@@ -127,7 +132,7 @@ jobs:
         run: npm ci
 
       - name: Import Apple certificate
-        if: ${{ secrets.APPLE_CERTIFICATE != '' }}
+        if: ${{ env.APPLE_CERTIFICATE != '' }}
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -145,7 +150,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
 
       - name: Notarize macOS app
-        if: ${{ secrets.APPLE_ID != '' }}
+        if: ${{ env.APPLE_ID != '' }}
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
