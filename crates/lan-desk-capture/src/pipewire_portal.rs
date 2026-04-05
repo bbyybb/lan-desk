@@ -92,7 +92,7 @@ async fn negotiate_portal_session(saved_token: Option<String>) -> anyhow::Result
         .select_sources(
             &session,
             CursorMode::Embedded,
-            SourceType::Monitor,
+            SourceType::Monitor.into(),
             false,
             saved_token.as_deref(),
             PersistMode::Application,

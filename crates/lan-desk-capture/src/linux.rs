@@ -13,6 +13,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::{info, warn};
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::ConnectionExt as _;
+use x11rb::wrapper::ConnectionExt as WrapperConnectionExt;
 
 pub struct LinuxCapture {
     conn: x11rb::rust_connection::RustConnection,
@@ -28,6 +29,7 @@ pub struct LinuxCapture {
 
 // SAFETY: LinuxCapture 在独立捕获线程中使用，X11 连接和 SHM 指针不跨线程共享
 unsafe impl Send for LinuxCapture {}
+unsafe impl Sync for LinuxCapture {}
 
 impl LinuxCapture {
     pub fn new(display_index: usize) -> anyhow::Result<Self> {
