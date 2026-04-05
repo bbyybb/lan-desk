@@ -39,6 +39,11 @@ docs/PROMOTION.md
 *.pfx
 *.p12
 *.der
+*.keystore
+*.jks
+
+# APK 签名产物
+*.apk
 
 # Claude Code
 .claude/

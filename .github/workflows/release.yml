@@ -239,13 +239,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test]
     continue-on-error: true
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android
+          targets: aarch64-linux-android,x86_64-linux-android
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
@@ -283,10 +285,64 @@ jobs:
           CC_aarch64-linux-android: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang
           AR_aarch64-linux-android: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
           CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang
+          CC_x86_64-linux-android: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android35-clang
+          AR_x86_64-linux-android: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android35-clang
+
+      - name: Sign APK
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+        shell: bash
+        run: |
+          # 解码 keystore
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > /tmp/lan-desk.keystore
+
+          # 找到构建产物
+          APK_DIR="src-tauri/gen/android/app/build/outputs/apk/universal/release"
+          for apk in "$APK_DIR"/*.apk; do
+            [ -f "$apk" ] || continue
+            echo "Signing $apk ..."
+
+            # 用 jarsigner 签名
+            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+              -keystore /tmp/lan-desk.keystore \
+              -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+              -keypass "$ANDROID_KEY_PASSWORD" \
+              "$apk" "$ANDROID_KEY_ALIAS"
+
+            # zipalign 优化（如果可用）
+            BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/*/ | tail -1)
+            if [ -f "${BUILD_TOOLS_DIR}zipalign" ]; then
+              "${BUILD_TOOLS_DIR}zipalign" -v 4 "$apk" "${apk%.apk}-aligned.apk"
+              mv "${apk%.apk}-aligned.apk" "$apk"
+            fi
+
+            echo "Signed: $apk"
+          done
+
+          # 清理 keystore
+          rm -f /tmp/lan-desk.keystore
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Rename APK
+        shell: bash
+        run: |
+          APK_DIR="src-tauri/gen/android/app/build/outputs/apk/universal/release"
+          for apk in "$APK_DIR"/*.apk; do
+            [ -f "$apk" ] || continue
+            if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+              mv "$apk" "$APK_DIR/LAN-Desk_1.0.0_android.apk"
+            else
+              mv "$apk" "$APK_DIR/LAN-Desk_1.0.0_android-unsigned.apk"
+            fi
+          done
 
       - name: Generate checksums
         run: |
-          for f in src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk; do
+          APK_DIR="src-tauri/gen/android/app/build/outputs/apk/universal/release"
+          for f in "$APK_DIR"/*.apk; do
             [ -f "$f" ] && shasum -a 256 "$f" >> checksums-android.txt
           done
 
