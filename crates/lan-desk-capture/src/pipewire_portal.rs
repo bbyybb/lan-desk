@@ -312,8 +312,8 @@ fn pipewire_event_loop(
     let context = pw::context::Context::new(&mainloop)
         .map_err(|e| anyhow::anyhow!("无法创建 PipeWire Context: {}", e))?;
 
-    // 通过 Portal fd 连接 PipeWire daemon
-    let fd = unsafe { std::os::fd::BorrowedFd::borrow_raw(pipewire_fd) };
+    // 通过 Portal fd 连接 PipeWire daemon（connect_fd 要求 OwnedFd 所有权）
+    let fd = unsafe { std::os::fd::OwnedFd::from_raw_fd(pipewire_fd) };
     let core = context
         .connect_fd(fd, None)
         .map_err(|e| anyhow::anyhow!("无法通过 Portal fd 连接 PipeWire: {}", e))?;
@@ -393,11 +393,8 @@ fn pipewire_event_loop(
     let _listener =
         stream
             .add_local_listener_with_user_data(())
-            .param_changed(move |_, id, _user_data, param| {
+            .param_changed(move |_, _id, _user_data, param| {
                 // 格式协商完成时更新分辨率和像素格式
-                if id != pw::spa::param::ParamType::Format.as_raw() {
-                    return;
-                }
                 if let Some(param) = param {
                     if let Ok((_, obj)) =
                         pw::spa::pod::deserialize::PodDeserializer::deserialize_from::<
@@ -430,7 +427,7 @@ fn pipewire_event_loop(
     // 运行事件循环，定期检查停止信号
     loop {
         // 处理 PipeWire 事件（非阻塞，最多等 50ms）
-        mainloop.iterate(Duration::from_millis(50));
+        mainloop.loop_().iterate(Duration::from_millis(50));
 
         // 检查停止信号
         if shutdown_rx.try_recv().is_ok() {
@@ -485,7 +482,7 @@ fn spa_video_format_to_local(id: u32) -> SpaFormat {
 }
 
 /// PipeWire Stream process 回调：从 SPA buffer 读取帧数据
-fn process_frame(stream: &pipewire::stream::Stream, shared: &Arc<SharedState>) {
+fn process_frame(stream: &pipewire::stream::StreamRef, shared: &Arc<SharedState>) {
     let mut buffer = match stream.dequeue_buffer() {
         Some(buf) => buf,
         None => return,
@@ -704,13 +701,7 @@ impl Drop for PipeWireCapture {
             // 无论超时与否都不要阻塞，辅助线程最终会退出
             drop(join_thread);
         }
-        // 关闭 Portal 返回的 PipeWire fd（BorrowedFd 不转移所有权，需手动关闭）
-        if let Some(fd) = self.pipewire_fd.take() {
-            unsafe {
-                // 通过 OwnedFd 的 Drop 关闭 fd
-                let _ = std::os::fd::OwnedFd::from_raw_fd(fd);
-            }
-        }
+        // fd 所有权已转移给 connect_fd（OwnedFd），无需手动关闭
         info!("PipeWire 捕获器已释放");
     }
 }
