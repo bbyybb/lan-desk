@@ -30,7 +30,7 @@ libc = "0.2"
 libloading = "0.8"
 tempfile = "3"
 # PipeWire/Portal 屏幕捕获（可选，需系统安装 libpipewire-0.3-dev）
-ashpd = { version = "0.10", default-features = false, features = ["tokio"], optional = true }
+ashpd = { version = "0.13", default-features = false, features = ["tokio"], optional = true }
 pipewire = { version = "0.8", optional = true }
 tokio = { workspace = true }
 
