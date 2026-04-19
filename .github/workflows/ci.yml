@@ -33,7 +33,7 @@ jobs:
           workspaces: "."
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'npm'
@@ -74,7 +74,7 @@ jobs:
           workspaces: "."
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'npm'
@@ -123,7 +123,7 @@ jobs:
           workspaces: "."
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'npm'
@@ -169,7 +169,7 @@ jobs:
           workspaces: "."
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'npm'
@@ -217,7 +217,7 @@ jobs:
           workspaces: "."
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'npm'
@@ -260,7 +260,7 @@ jobs:
         run: cargo clippy -p lan-desk-protocol -p lan-desk-clipboard -p lan-desk-audio -p lan-desk-capture -p lan-desk-input -p lan-desk-server -p lan-desk -- -D warnings
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'npm'
